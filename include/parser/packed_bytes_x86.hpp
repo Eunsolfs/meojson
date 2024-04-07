@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "packed_bytes.hpp"
 
 #include <emmintrin.h>

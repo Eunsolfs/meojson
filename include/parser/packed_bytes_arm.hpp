@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // current NEON implementation doesn't outperform 64-bit scalar implementation
 #ifdef MEOJSON_ENABLE_NEON
