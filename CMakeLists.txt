@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 project(meojson CXX)
 
-include_directories(./include)
-
 option(BUILD_SAMPLE "Build sample in sample/sample.cpp" ON)
 option(BUILD_BENCHMARK "Build benchmark in benchmark/benchmark.cpp" OFF)
 option(ENABLE_NEON "Enable ARM NEON" OFF)
@@ -28,13 +26,20 @@ file(GLOB_RECURSE json_headers
     include/*.hpp
 )
 
+add_library(meojson INTERFACE ${json_headers})
+target_include_directories(meojson INTERFACE include)
+
 if (BUILD_SAMPLE)
     file(GLOB sample_src
         sample/*.cpp
         sample/*.h
         sample/*.hpp
     )
-    add_executable(sample ${sample_src} ${json_headers})
+    add_executable(sample ${sample_src})
+    target_link_libraries(sample meojson)
+    if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC"))
+        target_compile_options(sample PRIVATE -Wno-unused-variable -Wno-unused-but-set-variable)
+    endif()
 
     source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${json_headers})
     source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${sample_src})
@@ -46,7 +51,11 @@ if (BUILD_TESTING)
         test/*.h
         test/*.hpp
     )
-    add_executable(testing ${testing_src} ${json_headers})
+    add_executable(testing ${testing_src})
+    target_link_libraries(testing meojson)
+    if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC"))
+        target_compile_options(testing PRIVATE -Wno-unused-variable -Wno-unused-but-set-variable)
+    endif()
 
     source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${json_headers})
     source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${testing_src})
@@ -59,7 +68,9 @@ if (BUILD_BENCHMARK)
         benchmark/*.h
         benchmark/*.hpp
     )
-    add_executable(benchmark ${benchmark_src} ${json_headers})
+    add_executable(benchmark ${benchmark_src})
+    target_link_libraries(benchmark meojson)
+
     source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${json_headers})
     source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${benchmark_src})
 

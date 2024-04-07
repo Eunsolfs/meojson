@@ -105,7 +105,8 @@ bool serializing()
     auto as_map_2 = root["obj from map"].as_map<int, std::map>();
     auto to_hashmap = root["obj from map"].as_map<int, std::unordered_map>();
 
-    std::vector<std::list<std::set<int>>> complex { { { 1, 2, 3 }, { 4, 5 } }, { { 6 }, { 7, 8 } } };
+    std::vector<std::list<std::set<int>>> complex { { { 1, 2, 3 }, { 4, 5 } },
+                                                    { { 6 }, { 7, 8 } } };
     root["complex"] = complex;
 
     root["a\\n"] = "1a\\n";
@@ -214,19 +215,24 @@ class jsonization<ThirdPartyStruct>
 {
 public:
     json::wvalue to_json(const ThirdPartyStruct& t) const { return t.a; }
+
     bool check_json(const json::wvalue& j) const { return j.is_number(); }
+
     bool from_json(const json::wvalue& j, ThirdPartyStruct& out) const
     {
         out.a = j.as_integer();
         return true;
     }
 };
+
 template <>
 class jsonization<std::filesystem::path>
 {
 public:
     json::value to_json(const std::filesystem::path& path) const { return path.string(); }
+
     bool check_json(const json::value& json) const { return json.is_string(); }
+
     bool from_json(const json::value& json, std::filesystem::path& path) const
     {
         path = json.as_string();
@@ -234,6 +240,8 @@ public:
     }
 };
 }
+
+bool third_party_jsonization_2();
 
 bool jsonizing()
 {
@@ -256,8 +264,9 @@ bool jsonizing()
         std::string str3;
         std::vector<double> vec;
         std::unordered_map<std::string, std::list<std::map<std::string, std::deque<int>>>> map;
+        std::array<int, 5> arr;
 
-        MEO_JSONIZATION(str1, str2, str3, vec, map);
+        MEO_JSONIZATION(str1, str2, str3, vec, map, arr);
     };
 
     MyStruct mine;
@@ -265,13 +274,14 @@ bool jsonizing()
     mine.str2 = "World";
     mine.str3 = "!";
     mine.vec.emplace_back(0.5);
-    mine.map = { { "key_1", { { { "inner_key_1", { 7, 8, 9 } } }, { { "inner_key_2", { 10 } } } } } };
+    mine.map = { { "key_1",
+                   { { { "inner_key_1", { 7, 8, 9 } } }, { { "inner_key_2", { 10 } } } } } };
 
     json::value j_mine = mine;
     MyStruct new_mine = (MyStruct)j_mine;
 
-    bool ret = new_mine.str1 == "Hello" && new_mine.str2 == "World" && new_mine.str3 == "!" && new_mine.vec[0] == 0.5 &&
-               new_mine.map["key_1"].size() == 2;
+    bool ret = new_mine.str1 == "Hello" && new_mine.str2 == "World" && new_mine.str3 == "!"
+               && new_mine.vec[0] == 0.5 && new_mine.map["key_1"].size() == 2;
     if (!ret) {
         std::cerr << "error new_mine" << std::endl;
         return false;
@@ -285,7 +295,8 @@ bool jsonizing()
         return false;
     }
 
-    std::vector<std::filesystem::path> paths = { "/root/dir1/dir2/filename", "/root/dir1/dir2/filename2" };
+    std::vector<std::filesystem::path> paths = { "/root/dir1/dir2/filename",
+                                                 "/root/dir1/dir2/filename2" };
     json::array jpaths = paths;
     std::vector<std::filesystem::path> new_paths = (std::vector<std::filesystem::path>)jpaths;
     if (new_paths != paths) {
@@ -293,14 +304,99 @@ bool jsonizing()
         return false;
     }
 
-    std::map<std::string, std::filesystem::path> path_map = { { "key1", "/root/dir1/dir2/filename" },
-                                                              { "key2", "/root/dir1/dir2/filename2" } };
+    std::map<std::string, std::filesystem::path> path_map = {
+        { "key1", "/root/dir1/dir2/filename" },
+        { "key2", "/root/dir1/dir2/filename2" }
+    };
     json::object jpath_map = path_map;
-    std::map<std::string, std::filesystem::path> new_path_map = (std::map<std::string, std::filesystem::path>)jpath_map;
+    std::map<std::string, std::filesystem::path> new_path_map =
+        (std::map<std::string, std::filesystem::path>)jpath_map;
     if (new_path_map != path_map) {
         std::cerr << "error new_path_map" << std::endl;
         return false;
     }
+
+    std::array<int, 10> stdarr { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    json::value jarr = stdarr;
+    std::array<int, 10> new_std_arr;
+    if (jarr.is<std::array<int, 10>>()) {
+        new_std_arr = (std::array<int, 10>)jarr;
+    }
+    else {
+        std::cerr << "error std::array" << std::endl;
+        return false;
+    }
+
+    if (new_std_arr.back() != 10) {
+        std::cerr << "error std::array value" << std::endl;
+        return false;
+    }
+
+    if (jarr.is<std::array<int, 5>>()) {
+        std::cerr << "error std::array size" << std::endl;
+        return false;
+    }
+
+    if (!third_party_jsonization_2()) {
+        std::cerr << "error third_party_jsonization_2" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+struct MyType
+{
+    int a = 0;
+};
+
+bool third_party_jsonization_2()
+{
+    /* If you don't like stupid invasive function, you can use `json::serialize` and
+     * `json::deserialize` for more elegant conversion: */
+    struct Serializer
+    {
+        json::value operator()(const MyType& t) const { return t.a; }
+    };
+
+    struct Deserializer
+    {
+        bool operator()(const json::value& j, MyType& t) const
+        {
+            if (!j.is_number()) {
+                return false;
+            }
+            t.a = j.as_integer();
+            return true;
+        }
+    };
+
+    std::map<std::string, MyType> third;
+    third["key"] = { 100 };
+    json::value jthird = json::serialize(third, Serializer {});
+
+    std::cout << jthird << std::endl;
+
+    std::map<std::string, MyType> new_third;
+    bool ret = json::deserialize(jthird, new_third, Deserializer {});
+    if (new_third["key"].a != 100) {
+        std::cerr << "error new_third[\"key\"].a != 100" << std::endl;
+        return false;
+    }
+
+    std::array<MyType, 5> third_arr {};
+    third_arr[4].a = 99;
+
+    json::value jthird_arr = json::serialize(third_arr, Serializer {});
+    std::array<MyType, 5> new_third_arr {};
+    bool ret_arr = json::deserialize(jthird_arr, new_third_arr, Deserializer {});
+    if (new_third_arr[4].a != 99) {
+        std::cerr << "error new_third_arr[4].a != 99" << std::endl;
+        return false;
+    }
+
+    json::value c = json::serialize(std::array<std::array<MyType, 5>, 10> {}, Serializer {});
+    std::cout << c << std::endl;
 
     return true;
 }

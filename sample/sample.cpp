@@ -54,7 +54,9 @@ void serializing()
 
     std::set<int> new_set = (std::set<int>)j["set"];
     // this crazy type again
-    auto new_map = (std::unordered_map<std::string, std::list<std::map<std::string, std::deque<int>>>>)j["map"];
+    auto new_map =
+        (std::unordered_map<std::string, std::list<std::map<std::string, std::deque<int>>>>)
+            j["map"];
 
     /* However, for runtime json, we'd better check whether it can be converted first. */
 
@@ -66,7 +68,8 @@ void serializing()
         std::cout << "Fortunately, I checked it, otherwise it will crash!" << std::endl;
     }
 
-    /* I guess you have understood, yes, **meojson** is not only a json library, but also a serialization library! */
+    /* I guess you have understood, yes, **meojson** is not only a json library, but also a
+     * serialization library! */
 
     struct MyStruct
     {
@@ -81,12 +84,14 @@ void serializing()
 
     MyStruct mine;
     mine.vec.emplace_back(0.5);
-    mine.map = { { "key_1", { { { "inner_key_1", { 7, 8, 9 } } }, { { "inner_key_2", { 10 } } } } } };
+    mine.map = { { "key_1",
+                   { { { "inner_key_1", { 7, 8, 9 } } }, { { "inner_key_2", { 10 } } } } } };
 
     // yes, it’s that intuitive and smooth!
     json::value j_mine = mine;
 
-    // output: {"map":{"key_1":[{"inner_key_1":[7,8,9]},{"inner_key_2":[10]}]},"vec":[0.500000],"x":0}
+    // output:
+    // {"map":{"key_1":[{"inner_key_1":[7,8,9]},{"inner_key_2":[10]}]},"vec":[0.500000],"x":0}
     std::cout << j_mine << std::endl;
 
     // exactly, we can also change it back!
@@ -114,8 +119,8 @@ void serializing()
     // same deserialization
     Outter new_o = (Outter)j_outter;
 
-    /* For optional fields, we can add `MEO_OPT` to it, so that when converting, if this fields does not exist in json,
-     * it will be skipped. */
+    /* For optional fields, we can add `MEO_OPT` to it, so that when converting, if this fields does
+     * not exist in json, it will be skipped. */
 
     struct OptionalFields
     {
@@ -174,7 +179,9 @@ class jsonization<ThirdPartyStruct>
 {
 public:
     json::value to_json(const ThirdPartyStruct& t) const { return t.a; }
+
     bool check_json(const json::value& j) const { return j.is_number(); }
+
     bool from_json(const json::value& j, ThirdPartyStruct& out) const
     {
         out.a = j.as_integer();
@@ -185,7 +192,8 @@ public:
 
 void third_party_jsonization_1()
 {
-    /* For third-party unhackable types, you need to implement `to_json`, `check_json`, `from_json` */
+    /* For third-party unhackable types, you need to implement `to_json`, `check_json`, `from_json`
+     */
 
     // then you can use it as json
     ThirdPartyStruct third;
@@ -200,22 +208,26 @@ void third_party_jsonization_1()
 
         MEO_JSONIZATION(outter2_a, third);
     };
+
     Outter2 o_2;
 }
 
 void third_party_jsonization_2()
 {
-    /* If you don't like stupid invasive function, you can use `json::serialize` and `json::deserialize`
-     * for more elegant conversion: */
+    /* If you don't like stupid invasive function, you can use `json::serialize` and
+     * `json::deserialize` for more elegant conversion: */
     struct Serializer
     {
         json::value operator()(const ThirdPartyStruct& t) const { return t.a; }
     };
+
     struct Deserializer
     {
         bool operator()(const json::value& j, ThirdPartyStruct& t) const
         {
-            if (!j.is_number()) return false;
+            if (!j.is_number()) {
+                return false;
+            }
             t.a = j.as_integer();
             return true;
         }
@@ -302,6 +314,7 @@ void parsing()
 
         MEO_JSONIZATION(i);
     };
+
     MyType get_custom_value = value.get("my_type", MyType {});
     auto find_custom_opt = value.find<MyType>("my_type");
 
